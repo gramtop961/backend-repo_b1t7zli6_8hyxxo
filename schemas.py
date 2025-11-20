@@ -1,48 +1,61 @@
 """
-Database Schemas
+Database Schemas for EcoTrail Gear
 
-Define your MongoDB collection schemas here using Pydantic models.
-These schemas are used for data validation in your application.
-
-Each Pydantic model represents a collection in your database.
-Model name is converted to lowercase for the collection name:
-- User -> "user" collection
-- Product -> "product" collection
-- BlogPost -> "blogs" collection
+Each Pydantic model represents a MongoDB collection. The collection name is the
+lowercased class name by convention in this environment.
 """
+from typing import List, Optional, Dict
+from pydantic import BaseModel, Field, HttpUrl
 
-from pydantic import BaseModel, Field
-from typing import Optional
 
-# Example schemas (replace with your own):
+class Impactstats(BaseModel):
+    """Aggregated impact metrics displayed on the homepage."""
+    trees_planted: int = Field(0, ge=0)
+    bottles_recycled: int = Field(0, ge=0)
+    carbon_offset_kg: float = Field(0.0, ge=0)
 
-class User(BaseModel):
-    """
-    Users collection schema
-    Collection name: "user" (lowercase of class name)
-    """
-    name: str = Field(..., description="Full name")
-    email: str = Field(..., description="Email address")
-    address: str = Field(..., description="Address")
-    age: Optional[int] = Field(None, ge=0, le=120, description="Age in years")
-    is_active: bool = Field(True, description="Whether user is active")
 
 class Product(BaseModel):
-    """
-    Products collection schema
-    Collection name: "product" (lowercase of class name)
-    """
-    title: str = Field(..., description="Product title")
-    description: Optional[str] = Field(None, description="Product description")
-    price: float = Field(..., ge=0, description="Price in dollars")
-    category: str = Field(..., description="Product category")
-    in_stock: bool = Field(True, description="Whether product is in stock")
+    """Product catalog items."""
+    title: str
+    description: Optional[str] = None
+    brand: Optional[str] = None
+    category: str = Field(..., description="Primary category")
+    subcategories: List[str] = Field(default_factory=list)
+    activity_types: List[str] = Field(default_factory=list, description="e.g., backpacking, mountaineering")
+    seasons: List[str] = Field(default_factory=list, description="e.g., spring/summer, fall/winter, all-season")
+    sustainability_features: List[str] = Field(default_factory=list)
+    special_features: List[str] = Field(default_factory=list)
+    images: List[HttpUrl] = Field(default_factory=list)
+    price: float = Field(..., ge=0)
+    sale_price: Optional[float] = Field(None, ge=0)
+    currency: str = Field("USD", min_length=3, max_length=3)
+    rating: float = Field(0, ge=0, le=5)
+    review_count: int = Field(0, ge=0)
+    in_stock: bool = True
+    availability: str = Field("in stock", description="in stock | pre-order | backorder")
+    eco_badge: Optional[str] = Field(None, description="Primary sustainable attribute badge text")
+    specs: Dict[str, str] = Field(default_factory=dict, description="Technical specifications")
 
-# Add your own schemas here:
-# --------------------------------------------------
 
-# Note: The Flames database viewer will automatically:
-# 1. Read these schemas from GET /schema endpoint
-# 2. Use them for document validation when creating/editing
-# 3. Handle all database operations (CRUD) directly
-# 4. You don't need to create any database endpoints!
+class Review(BaseModel):
+    """Multidimensional customer review."""
+    product_id: str
+    title: str
+    body: str
+    photos: List[HttpUrl] = Field(default_factory=list)
+    videos: List[HttpUrl] = Field(default_factory=list)
+    verified_purchase: bool = False
+    days_tested: Optional[int] = Field(None, ge=0)
+    ratings: Dict[str, int] = Field(default_factory=dict, description="keys: durability, comfort, weather_resistance, value, sustainability, performance (1-5)")
+    activity_used: Optional[str] = None
+    season_tested: Optional[str] = None
+    experience_level: Optional[str] = None
+    variant: Optional[str] = None
+    author_name: Optional[str] = None
+
+
+class User(BaseModel):
+    name: str
+    email: str
+    is_active: bool = True
